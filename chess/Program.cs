@@ -95,6 +95,11 @@ namespace chess
         }
     }
 
+    enum StepPossibility
+    {
+        CheckMate, StaleMate, Continue
+    }
+
     class Board
     {
         public readonly Figure[,] Figures = new Figure[8, 8];
@@ -209,13 +214,13 @@ namespace chess
             return false;
         }
 
-        public StepMemento StepWithMemento(int xFrom, int yFrom, int xTo, int yTo)
+        public StepMemento StepWithMemento(int xFrom, int yFrom, int xTo, int yTo, FigureColor color)
         {
             if (Figures[xFrom, yFrom] == null)
             {
                 return null;
             }
-            if (Figures[xFrom, yFrom].CanStep(xFrom, yFrom, xTo, yTo, this))
+            if (Figures[xFrom, yFrom].Color == color && Figures[xFrom, yFrom].CanStep(xFrom, yFrom, xTo, yTo, this))
             {
                 Figure oldAtTo = Figures[xTo, yTo];
                 Figures[xTo, yTo] = Figures[xFrom, yFrom];
@@ -229,6 +234,51 @@ namespace chess
         {
             Figures[memento.FromX, memento.FromY] = Figures[memento.ToX, memento.ToY];
             Figures[memento.ToX, memento.ToY] = memento.OldAtTo;
+        }
+
+        public StepPossibility GetStepPossibilities(FigureColor color)
+        {
+            for (int yfrom = 0; yfrom < 8; yfrom++)
+            {
+                for (int xfrom = 0; xfrom < 8; xfrom++)
+                {
+                    for (int yto = 0; yto < 8; yto++)
+                    {
+                        for (int xto = 0; xto < 8; xto++)
+                        {
+                            StepMemento memento = StepWithMemento(xfrom, yfrom, xto, yto, color);
+                            if (memento != null)
+                            {
+                                if (!IsKingChecked(color))
+                                {
+                                    RestoreMemento(memento);
+                                    return StepPossibility.Continue;
+                                }
+                                RestoreMemento(memento);
+                            }
+                        }
+                    }
+                }
+            }
+            if (IsKingChecked(color))
+            {
+                return StepPossibility.CheckMate;
+            }
+            return StepPossibility.StaleMate;
+        }
+
+        public bool StepWithoutCheck(int xFrom, int yFrom, int xTo, int yTo, FigureColor color)
+        {
+            StepMemento memento = StepWithMemento(xFrom, yFrom, xTo, yTo, color);
+            if (memento != null && !IsKingChecked(color))
+            {
+                return true;
+            }
+            if (memento != null)
+            {
+                RestoreMemento(memento);
+            }
+            return false;
         }
     }
 
