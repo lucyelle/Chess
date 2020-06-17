@@ -16,16 +16,32 @@ namespace chess
             int round = 0;
             while (true)
             {
-                PlayerTurn(board, round % 2 == 0 ? FigureColor.White : FigureColor.Black);
+                bool canContinue = PlayerTurn(board, round % 2 == 0 ? FigureColor.White : FigureColor.Black);
+                if (!canContinue)
+                {
+                    break;
+                }
                 Console.Clear();
                 board.Draw();
                 round++;
             }
-
+            Console.ReadKey();
         }
 
-        static void PlayerTurn(Board board, FigureColor color)
+        static bool PlayerTurn(Board board, FigureColor color)
         {
+            StepPossibility stepState = board.GetStepPossibilities(color);
+            if (stepState == StepPossibility.CheckMate)
+            {
+                Console.WriteLine($"Checkmate! {color} lost!");
+                return false;
+            }
+            if (stepState == StepPossibility.StaleMate)
+            {
+                Console.WriteLine($"Stalemate! It's a draw!");
+                return false;
+            }
+
             Console.WriteLine(color);
             while (true)
             {
@@ -34,11 +50,11 @@ namespace chess
                 if (figure != null && figure.Color == color)
                 {
                     (int, int) to = GetValidCoordinates(board, color);
-                    if (figure.CanStep(from.Item1, from.Item2, to.Item1, to.Item2, board))
+                    if (board.StepWithoutCheck(from.Item1, from.Item2, to.Item1, to.Item2, color))
                     {
                         board.Figures[from.Item1, from.Item2] = null;
                         board.Figures[to.Item1, to.Item2] = figure;
-                        return;
+                        return true;
                     }
                     else
                     {
